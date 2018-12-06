@@ -159,10 +159,11 @@ onkeyup = e => {
 requestAnimationFrame(tick);
 
 function addVecRandomUniform(vec, amt=1) {
-  vec[0] += (Math.random() - Math.random()) * amt;
-  vec[1] += (Math.random() - Math.random()) * amt;
-  vec[2] += (Math.random() - Math.random()) * amt;
-  return vec;
+  let newV = [0,0,0];
+  newV[0] = vec[0] + (Math.random() - Math.random()) * amt;
+  newV[1] = vec[1] + (Math.random() - Math.random()) * amt;
+  newV[2] = vec[2] + (Math.random() - Math.random()) * amt;
+  return newV;
 }
 
 function Flock() {

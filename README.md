@@ -1,4 +1,4 @@
 # WebGL-Boids
 First experience with WebGL!
 
-Run ```npm init``` to get twgl.js
+Run ```npm install``` to get twgl.js

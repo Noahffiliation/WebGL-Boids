@@ -3,10 +3,14 @@ var gl = canvas.getContext('webgl2');
 if (!gl) console.log('no gl!');
 var cubeBuffer = generateCubeBuffer(gl, twgl);
 var pyrBuffer = generatePyramidBuffer(gl, twgl);
+var sqrBuffer = generateSqaureBuffer(gl, twgl);
 
 var programInfo = twgl.createProgramInfo(gl, ["3d-vertex-shader", "3d-fragment-shader"]);
 var m4 = twgl.m4;
 var v3 = twgl.v3;
+
+const UP = [0, 1, 0];
+const VIEW_PLANE_DIST = 5; //Camera's target lies on a plane this far from it.
 
 var keys = {};
 
@@ -26,16 +30,17 @@ var scene_objs = [];
 //   color: [1, 1, 0, 1],
 //   buffer: cubeBuffer
 // }
-let a = new Cube();
-a.pos = [0,1,0]
-scene_objs.push(a);
+let a = new Moth();
+a.solid.pos[1] = 5;
+a.vel[1] = -.1
 
-// cube_info = {
-//   pos: [0,0,0],
-//   dir: [1,1,1],
-//   scale: 0.5,
-//   color: [1, 1, 0, 1],
-// }
+let floor = new Square();
+floor.drawRotation = true;
+floor.rot[0] = 3.14/2;
+floor.pos = [0, 0, 0]
+floor.color = [.7,.7,.7, 1]
+floor.scale = 1000;
+scene_objs.push(floor)
 
 // let p = {
 //   pos: [2,0,-10],
@@ -52,15 +57,17 @@ scene_objs.push(a);
 // scene_objs.push(p);
 
 var camera_info = {
-  pos: [0,0,100],
-  tar: [0,0,0],
-  up: [0,1,0],
+  pos: [0,10,20],
+  tar: [0,10,0],
+  tar_offset: [0,0,0],
+  up: UP,
   fov: 60 * 3.14 / 180,
   zNear: 1,
   zFar: 2000,
+  vel: [0, 0, 0]
 };
 
-let flock = new Flock();
+let flock = new BirdFlock();
 flock.addBirds();
 
 function tick(time) {
@@ -70,7 +77,8 @@ function tick(time) {
 }
 
 function update(time){
-  time *= 0.0005;
+  time *= 0.001;
+  a.update(time)
   flock.birds.forEach(b => b.update());
   flock.update();
 
@@ -79,23 +87,30 @@ function update(time){
 
 function moveCamera() {
   if (keys[37] || keys[65]) { //left
-    camera_info.tar[0] -= .1;
+    camera_info.tar_offset[0] -= .1;
   }
   else if (keys[39] || keys[68]) { //right
-    camera_info.tar[0] += .1;
+    camera_info.tar_offset[0] += .1;
   } else {
-    camera_info.tar[0] *= .9;
-    if (Math.abs(camera_info.tar[0]) < .01) camera_info.tar[0] = 0;
+    camera_info.tar_offset[0] *= .9;
+    if (Math.abs(camera_info.tar_offset[0]) < .01) camera_info.tar_offset[0] = 0;
   }
   if (keys[38] || keys[87]) { //up
-    camera_info.tar[1] += .1;
+    camera_info.tar_offset[1] += .1;
   }
   else if (keys[40] || keys[83]) { //down
-    camera_info.tar[1] -= .1;
+    camera_info.tar_offset[1] -= .1;
   } else {
-    camera_info.tar[1] *= .9;
-    if (Math.abs(camera_info.tar[1]) < .01) camera_info.tar[1] = 0;
+    camera_info.tar_offset[1] *= .9;
+    if (Math.abs(camera_info.tar_offset[1]) < .01) camera_info.tar_offset[1] = 0;
   }
+  camera_info.tar_offset[2] = -VIEW_PLANE_DIST
+  camera_info.tar = v3.add(camera_info.pos, camera_info.tar_offset)
+  // camera_info.tar[0] = camera_info.pos[0] + camera_info.tar_offset[0];
+  // camera_info.tar[1] = camera_info.pos[1] + camera_info.tar_offset[1];
+  // camera_info.tar[2] = camera_info.pos[2] + camera_info.tar_offset[2];
+
+  camera_info.pos = v3.add(camera_info.pos, camera_info.vel)
 
 }
 
@@ -134,14 +149,7 @@ function model_matrix(info) {
     var Rz = m4.rotationZ(info.rot[2]);
     R = m4.multiply(Rx, m4.multiply(Ry, Rz));
   } else {
-    R = m4.identity()
-    info.dir = v3.normalize(info.dir);
-    m4.setAxis(R, info.dir, 2, R);
-    let up = [0, 1, 0];
-    let x_dir = v3.normalize(v3.cross(info.dir, up));
-    m4.setAxis(R, x_dir, 0, R);
-    let y_dir = v3.cross(x_dir, info.dir);
-    m4.setAxis(R, y_dir, 1, R);
+    R = lookTo(info.dir, UP)
   }
   var M = m4.multiply(T, m4.multiply(R, S));
   return M;
@@ -166,19 +174,29 @@ function addVecRandomUniform(vec, amt=1) {
   return newV;
 }
 
-function Flock() {
+function lookTo(dir, up) {
+  let matrix = m4.identity()
+  dir = v3.normalize(dir); //maybe unnecessary
+  m4.setAxis(matrix, dir, 2, matrix);
+  let x_dir = v3.normalize(v3.cross(dir, up));
+  m4.setAxis(matrix, x_dir, 0, matrix);
+  let y_dir = v3.cross(x_dir, dir);
+  m4.setAxis(matrix, y_dir, 1, matrix);
+  return matrix;
+}
+
+function BirdFlock() {
   this.birds = [];
   this.pos = [0,0,0];
-  this.vel = [1,0,0];
+  this.vel = [.1,.2,0];
   this.addBirds = function(n=10) {
     for (let i = 0; i < n; i++){
       let b = new Bird();
       b.vel = flock.vel;
       b.solid.pos = flock.pos;
       b.vel = addVecRandomUniform(b.vel, .01);
-      b.solid.pos = addVecRandomUniform(b.solid.pos, 10);
-
-      console.log(b.vel, b.solid.pos)
+      b.solid.pos = addVecRandomUniform(b.solid.pos, 3);
+      b.solid.dir = v3.normalize(b.vel)
 
       b.solid.color = [Math.random(), Math.random(), Math.random(), 1]
 
@@ -209,7 +227,22 @@ function Bird() {
   this.vel = [0,0,1];
   this.update = function() {
     this.solid.move(this.vel)
-    console.log(this.vel)
+  }
+}
+
+function Moth() {
+  let s = new Cube();
+  s.drawRotation = true;
+  this.solid = s;
+  scene_objs.push(this.solid);
+
+  this.vel = [0,0,0];
+  this.rxv = (Math.random()*2) - 1;
+  this.ryv = (Math.random()*2) - 1;
+  this.update = function(t) {
+    this.solid.move(this.vel)
+    this.solid.rot[0] = this.rxv * t;
+    this.solid.rot[1] = this.ryv * t;
   }
 }
 
@@ -234,4 +267,8 @@ function Cube() {
 
 function Pyramid() {
   Solid.call(this, pyrBuffer)
+}
+
+function Square() {
+  Solid.call(this, sqrBuffer)
 }

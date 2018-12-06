@@ -1,0 +1,18 @@
+{
+  "name": "webgl-boids",
+  "version": "1.0.0",
+  "description": "First experience with WebGL!",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EdricY/WebGL-Boids.git"
+  },
+  "author": "Edric Yu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EdricY/WebGL-Boids/issues"
+  },
+  "homepage": "https://github.com/EdricY/WebGL-Boids#readme",
+  "dependencies": {
+    "twgl.js": "^4.5.2"
+  }
+}

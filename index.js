@@ -21,19 +21,6 @@ twgl.resizeCanvasToDisplaySize(gl.canvas);
 
 var scene_objs = [];
 
-// var cube_info = {
-//   pos: [0,0,0],
-//   rot_x: 0,
-//   rot_y: 0,
-//   rot_z: 0,
-//   scale: 0.5,
-//   color: [1, 1, 0, 1],
-//   buffer: cubeBuffer
-// }
-let a = new Moth();
-a.solid.pos[1] = 5;
-a.vel[1] = -.1
-
 let floor = new Square();
 floor.drawRotation = true;
 floor.rot[0] = 3.14/2;
@@ -42,19 +29,6 @@ floor.color = [.7,.7,.7, 1]
 floor.scale = 1000;
 scene_objs.push(floor)
 
-// let p = {
-//   pos: [2,0,-10],
-//   // dir: [1,1,1],
-//   rot_x: 0,
-//   rot_y: 0,
-//   rot_z: 0,
-//   scale: 0.5,
-//   color: [1, 0, 0, 1],
-//   buffer: pyrBuffer
-// }
-
-// let p = new Pyramid();
-// scene_objs.push(p);
 
 var camera_info = {
   pos: [0,10,20],
@@ -70,6 +44,9 @@ var camera_info = {
 let flock = new BirdFlock();
 flock.addBirds();
 
+let flock2 = new MothFlock();
+flock2.addMoths();
+
 function tick(time) {
   render(time);
   update(time);
@@ -78,10 +55,10 @@ function tick(time) {
 
 function update(time){
   time *= 0.001;
-  a.update(time)
   flock.birds.forEach(b => b.update());
   flock.update();
-
+  flock2.moths.forEach(b => b.update(time));
+  flock2.update();
   moveCamera();
 }
 
@@ -106,10 +83,6 @@ function moveCamera() {
   }
   camera_info.tar_offset[2] = -VIEW_PLANE_DIST
   camera_info.tar = v3.add(camera_info.pos, camera_info.tar_offset)
-  // camera_info.tar[0] = camera_info.pos[0] + camera_info.tar_offset[0];
-  // camera_info.tar[1] = camera_info.pos[1] + camera_info.tar_offset[1];
-  // camera_info.tar[2] = camera_info.pos[2] + camera_info.tar_offset[2];
-
   camera_info.pos = v3.add(camera_info.pos, camera_info.vel)
 
 }
@@ -192,8 +165,8 @@ function BirdFlock() {
   this.addBirds = function(n=10) {
     for (let i = 0; i < n; i++){
       let b = new Bird();
-      b.vel = flock.vel;
-      b.solid.pos = flock.pos;
+      b.vel = this.vel;
+      b.solid.pos = this.pos;
       b.vel = addVecRandomUniform(b.vel, .01);
       b.solid.pos = addVecRandomUniform(b.solid.pos, 3);
       b.solid.dir = v3.normalize(b.vel)
@@ -207,7 +180,7 @@ function BirdFlock() {
     let n = this.birds.length;
     if (n <= 0) return 
 
-    //calculate flock center & velection
+    //calculate flock center & velocity
     let pos = [0,0,0];
     let vel = [0,0,0];
     for (let b of this.birds) {
@@ -216,7 +189,71 @@ function BirdFlock() {
     }
     this.pos = v3.divScalar(pos, n);
     this.vel = v3.divScalar(vel, n);
-    
+  }
+}
+
+function MothFlock() {
+  this.moths = [];
+  this.pos = [10,10,-100];
+  this.vel = [-.5, 0, 0];
+  this.addMoths = function(n=10) {
+    for (let i = 0; i < n; i++){
+      let m = new Moth();
+      m.vel = this.vel;
+      m.solid.pos = this.pos;
+      m.vel = addVecRandomUniform(m.vel, .01);
+      m.solid.pos = addVecRandomUniform(m.solid.pos, 3);
+      m.solid.dir = v3.normalize(m.vel)
+      m.solid.color = [Math.random(), Math.random(), Math.random(), 1]
+
+      this.moths.push(m);
+    }
+  }
+  this.update = function() {
+    let n = this.moths.length;
+    if (n <= 0) return 
+    //calculate flock center & velocity
+    let temp_pos = [0,0,0];
+    let temp_vel = [0,0,0];
+    for (let m of this.moths) {
+      temp_pos = v3.add(m.solid.pos, temp_pos);
+      temp_vel = v3.add(m.vel, temp_vel);
+
+      // use this.pos and this.vel from last update
+      heur_vel = [0,0,0];
+      // toward flock
+      let dist = v3.subtract(this.pos, m.solid.pos);
+      heur_vel = v3.mulScalar(dist, .1);
+      // in direction of flock
+      let f_part = v3.divScalar(this.vel, 2);
+      heur_vel = v3.add(heur_vel, f_part);
+      //away from other birds
+      for (let otherMoth of this.moths) { //could improve efficiency
+        if (otherMoth != m) {
+          let diff = v3.subtract(m.solid.pos, otherMoth.solid.pos);
+          let m_dist = v3.length(diff);
+          if (m_dist > 10){
+            continue;
+          } 
+          let m_dir = v3.normalize(diff);
+          //longer distance, less effect;
+          let m_effect = (10 - m_dist) / 100;
+          let m_part = v3.mulScalar(m_dir, m_effect);
+          heur_vel = v3.add(heur_vel, m_part);
+        }
+      }
+      scal_vel = v3.length(m.vel);
+      heur_vel = v3.normalize(heur_vel)
+      m.vel = v3.normalize(m.vel)
+
+      m.vel = v3.add(m.vel, heur_vel); //m.vel length = 2
+      scal_vel /= 2;
+      m.vel = v3.mulScalar(m.vel, scal_vel)
+
+    }
+    this.pos = v3.divScalar(temp_pos, n);
+    this.vel = v3.divScalar(temp_vel, n);
+
   }
 }
 

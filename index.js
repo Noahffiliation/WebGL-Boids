@@ -4,6 +4,7 @@ if (!gl) console.log('no gl!');
 var cubeBuffer = generateCubeBuffer(gl, twgl);
 var pyrBuffer = generatePyramidBuffer(gl, twgl);
 var sqrBuffer = generateSqaureBuffer(gl, twgl);
+var treeBuffer = generateTreeBuffer(gl, twgl);
 
 var programInfo = twgl.createProgramInfo(gl, ["3d-vertex-shader", "3d-fragment-shader"]);
 var m4 = twgl.m4;
@@ -28,6 +29,15 @@ floor.pos = [0, 0, 0]
 floor.color = [.7,.7,.7, 1]
 floor.scale = 1000;
 scene_objs.push(floor)
+
+for (let i=0; i<100; i++){
+  let pos = [-100 + Math.random() * 200, 0, -100 + Math.random() * 200];
+  let tree = new Tree();
+  tree.pos = pos;
+  tree.color = [0,.5+Math.random()*.5,0,1]
+  tree.scale = 1 + Math.random()*2;
+  scene_objs.push(tree)
+}
 
 
 var camera_info = {
@@ -232,4 +242,8 @@ function Pyramid() {
 
 function Square() {
   Solid.call(this, sqrBuffer)
+}
+
+function Tree() {
+  Solid.call(this, treeBuffer)
 }

@@ -16,6 +16,13 @@ function BirdFlock() {
       this.birds.push(b);
     }
   }
+
+  this.removeAll = function() {
+    this.birds.forEach(bird => {
+      bird.solid.kill = true;
+    });
+  }
+
   this.update = function () {
     let n = this.birds.length;
     if (n <= 0) return
@@ -71,7 +78,7 @@ function MothFlock() {
   this.moths = [];
   this.pos = [10, 20, -100];
   this.vel = [-.5, 0, 0];
-  this.addMoths = function (n = 10) {
+  this.addMoths = function(n = 10) {
     for (let i = 0; i < n; i++) {
       let m = new Moth();
       m.vel = this.vel;
@@ -84,7 +91,14 @@ function MothFlock() {
       this.moths.push(m);
     }
   }
-  this.update = function () {
+
+  this.removeAll = function() {
+    this.moths.forEach(moth => {
+      moth.solid.kill = true;
+    });
+  }
+
+  this.update = function() {
     let n = this.moths.length;
     if (n <= 0) return
     //calculate flock center & velocity
@@ -136,7 +150,7 @@ function Bird() {
   // each bird is responsible for making sure it gets drawn
   scene_objs.push(this.solid);
   this.vel = [0, 0, 1];
-  this.update = function () {
+  this.update = function(t) {
     this.solid.move(this.vel)
   }
 }
@@ -150,7 +164,7 @@ function Moth() {
   this.vel = [0, 0, 0];
   this.rxv = (Math.random() * 2) - 1;
   this.ryv = (Math.random() * 2) - 1;
-  this.update = function (t) {
+  this.update = function(t) {
     this.solid.move(this.vel)
     this.solid.rot[0] = this.rxv * t;
     this.solid.rot[1] = this.ryv * t;

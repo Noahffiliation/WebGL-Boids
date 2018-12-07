@@ -41,11 +41,15 @@ var camera_info = {
   vel: [0, 0, 0]
 };
 
-let flock = new BirdFlock();
-flock.addBirds();
+let fSpawnTimer = 1000;
+let lastUpdateTime = 0;
+let flocks = [];
 
-let flock2 = new MothFlock();
-flock2.addMoths(50);
+// let flock = new BirdFlock();
+// flock.addBirds();
+
+// let flock2 = new MothFlock();
+// flock2.addMoths(50);
 
 function tick(time) {
   render(time);
@@ -54,28 +58,85 @@ function tick(time) {
 }
 
 function update(time){
-  time *= 0.001;
-  flock.birds.forEach(b => b.update());
-  flock.update();
-  flock2.moths.forEach(b => b.update(time));
-  flock2.update();
+  let elapsedTime = time - lastUpdateTime;
+  fSpawnTimer -= elapsedTime;
+  if (fSpawnTimer <= 0) {
+    // spawn flock
+    let isBird = Math.random() < .5;
+    let f = isBird ? new BirdFlock() : new MothFlock;
+    let theta = Math.random() * Math.PI * 2;
+    let dir = [Math.cos(theta), 0, Math.sin(theta)];
+    let dist = 2000;
+    let offset = v3.mulScalar(dir, dist);
+    let pos = v3.add(offset, camera_info.pos);
+    pos = v3.add(pos, [0, 10 + Math.random() * 100, 0]);
+    f.pos = pos;
+    let vel = .1 + Math.random() * 1;
+    f.vel = v3.mulScalar(dir, -vel);
+    
+    let amt = 5 + Math.floor(Math.random() * 30);
+    isBird ? f.addBirds(amt) : f.addMoths(amt);
+    flocks.push(f);
+    fSpawnTimer = 500 + Math.floor(Math.random() * 100)
+  }
+  let t = time * 0.001;
+
+  for (let i in flocks) {
+    let flock = flocks[i];
+    if (outOfRange(flock)) {
+      flock.removeAll();
+      flocks.splice(i--, 1);
+      continue;
+    }
+    flock.update();
+    if (flock.birds) flock.birds.forEach(b => b.update(t));
+    if (flock.moths) flock.moths.forEach(m => m.update(t));
+  }
+  // flock.birds.forEach(b => b.update());
+  // flock.update();
+  // flock2.moths.forEach(b => b.update(t));
+  // flock2.update();
   moveCamera();
+  floor.pos[0] = camera_info.pos[0];
+  floor.pos[2] = camera_info.pos[2];
+
+  lastUpdateTime = time;
+}
+
+function outOfRange(obj) {
+  let distsq = v3.distanceSq(obj.pos, camera_info.pos);
+  return distsq >= 2500*2500;
 }
 
 function moveCamera() {
-  if (keys[37] || keys[65]) { //left
+  if (keys[65]) camera_info.vel[0] = -.5;      //a
+  else if (keys[68]) camera_info.vel[0] = .5;  //d
+  else {
+    camera_info.vel[0] *= .8;
+    if (Math.abs(camera_info.vel[0] < .01)) camera_info.vel[0] = 0;
+  } 
+  if (keys[87]) camera_info.vel[2] = -.5;      //w
+  else if (keys[83]) camera_info.vel[2] = .5; //s
+  else {
+    camera_info.vel[2] *= .8;
+    if (Math.abs(camera_info.vel[2] < .01)) camera_info.vel[2] = 0;
+  }
+
+  camera_info.pos = v3.add(camera_info.pos, camera_info.vel)
+
+  if (keys[37]) { //left
     camera_info.tar_offset[0] -= .1;
   }
-  else if (keys[39] || keys[68]) { //right
+  else if (keys[39]) { //right
     camera_info.tar_offset[0] += .1;
   } else {
     camera_info.tar_offset[0] *= .9;
     if (Math.abs(camera_info.tar_offset[0]) < .01) camera_info.tar_offset[0] = 0;
   }
-  if (keys[38] || keys[87]) { //up
+  if (keys[38]) { //up
     camera_info.tar_offset[1] += .1;
   }
-  else if (keys[40] || keys[83]) { //down
+  else if (keys[40]) { //down
     camera_info.tar_offset[1] -= .1;
   } else {
     camera_info.tar_offset[1] *= .9;
@@ -83,8 +144,6 @@ function moveCamera() {
   }
   camera_info.tar_offset[2] = -VIEW_PLANE_DIST
   camera_info.tar = v3.add(camera_info.pos, camera_info.tar_offset)
-  camera_info.pos = v3.add(camera_info.pos, camera_info.vel)
-
 }
 
 function render() {
@@ -99,7 +158,12 @@ function render() {
   gl.enable(gl.CULL_FACE);
   gl.enable(gl.DEPTH_TEST);
 
-  for (let obj_info of scene_objs) {
+  for (let i in scene_objs) {
+    let obj_info = scene_objs[i];
+    if (obj_info.kill === true) {
+      scene_objs.splice(i--, 1);
+      continue;
+    }
     let uniforms = {
       view_matrix: view_matrix,
       proj_matrix: proj_matrix,
@@ -156,21 +220,6 @@ function lookTo(dir, up) {
   let y_dir = v3.cross(x_dir, dir);
   m4.setAxis(matrix, y_dir, 1, matrix);
   return matrix;
-}
-
-function Solid(buffer) {
-  this.pos = [0,0,0];
-  this.dir = [0,0,1];
-  this.scale = 1;
-  this.color = [1, 1, 0, 1];
-  this.buffer = buffer;
-  
-  this.drawRotation = false;
-  this.rot = [0,0,0];
-  
-  this.move = function(v) {
-    v3.add(this.pos, v, this.pos);
-  }
 }
 
 function Cube() {

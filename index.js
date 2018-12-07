@@ -45,7 +45,7 @@ let flock = new BirdFlock();
 flock.addBirds();
 
 let flock2 = new MothFlock();
-flock2.addMoths();
+flock2.addMoths(50);
 
 function tick(time) {
   render(time);
@@ -161,9 +161,9 @@ function lookTo(dir, up) {
 function BirdFlock() {
   this.birds = [];
   this.pos = [0,0,0];
-  this.vel = [.1,.2,0];
+  this.vel = [0,.2,0];
   this.addBirds = function(n=10) {
-    for (let i = 0; i < n; i++){
+    for (let i = 0; i < n; i++) {
       let b = new Bird();
       b.vel = this.vel;
       b.solid.pos = this.pos;
@@ -187,6 +187,41 @@ function BirdFlock() {
       pos = v3.add(b.solid.pos, pos);
       vel = v3.add(b.vel, vel);
     }
+    let temp_pos = [0,0,0];
+    let temp_vel = [0,0,0];
+
+    // use this.pos and this.vel from last update
+    for (let b of this.birds) {
+      temp_pos = v3.add(b.solid.pos, temp_pos);
+      temp_vel = v3.add(b.vel, temp_vel);
+      // toward flock (cohesion)
+      let coh = v3.normalize(v3.subtract(this.pos, b.solid.pos));
+      // in direction of flock (alignment)
+      let ali = v3.normalize(this.vel);
+      //away from other birds (separation)
+      let sep = [0,0,0];
+      for (let otherBird of this.birds) { //could improve efficiency
+        if (otherBird == b) continue;
+        let diff = v3.subtract(b.solid.pos, otherBird.solid.pos);
+        let b_dist = v3.length(diff);
+        if (b_dist > 10) {
+          continue;
+        } 
+        let b_dir = v3.normalize(diff);
+        //longer distance, less effect;
+        let b_effect = (10 - b_dist) / 100;
+        let b_part = v3.mulScalar(b_dir, b_effect);
+        sep = v3.add(sep, b_part);
+      }
+      sep = v3.normalize(sep);
+
+      ali = v3.mulScalar(ali, .03)
+      coh = v3.mulScalar(coh, .02)
+      sep = v3.mulScalar(sep, .03)
+      let heur_vel = v3.add(v3.add(ali, coh), sep); 
+      b.vel = v3.add(b.vel, heur_vel);
+    }
+
     this.pos = v3.divScalar(pos, n);
     this.vel = v3.divScalar(vel, n);
   }
@@ -249,12 +284,7 @@ function MothFlock() {
       sep = v3.mulScalar(sep, .015)
       let heur_vel = v3.add(v3.add(ali, coh), sep);
 
-      m.vel = v3.add(m.vel, heur_vel)
-      // m.vel = v3.add(orig_vel, heur_vel); //m.vel length = 2
-
-      // scal_vel = .8 * (scal_vel) + .2 *(v3.length(this.vel))
-      // scal_vel /= 2;
-      // m.vel = v3.mulScalar(m.vel, scal_vel)
+      m.vel = v3.add(m.vel, heur_vel);
     }
     this.pos = v3.divScalar(temp_pos, n);
     this.vel = v3.divScalar(temp_vel, n);

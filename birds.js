@@ -2,7 +2,7 @@ function BirdFlock() {
   this.birds = [];
   this.pos = [0, 0, 0];
   this.vel = [0, .2, 0];
-  this.addBirds = function (n = 10) {
+  this.addBirds = function(n=10) {
     for (let i = 0; i < n; i++) {
       let b = new Bird();
       b.vel = this.vel;
@@ -78,7 +78,7 @@ function MothFlock() {
   this.moths = [];
   this.pos = [10, 20, -100];
   this.vel = [-.5, 0, 0];
-  this.addMoths = function(n = 10) {
+  this.addMoths = function(n=10) {
     for (let i = 0; i < n; i++) {
       let m = new Moth();
       m.vel = this.vel;

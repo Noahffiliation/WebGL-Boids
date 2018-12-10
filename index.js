@@ -41,25 +41,20 @@ for (let i=0; i<100; i++){
 
 
 var camera_info = {
-  pos: [0,10,20],
-  tar: [0,10,0],
+  pos: [0,50,20],
+  tar: [0,50,0],
   tar_offset: [0,0,0],
   up: UP,
   fov: 60 * 3.14 / 180,
   zNear: 1,
   zFar: 2000,
-  vel: [0, 0, 0]
+  vel: [0, 0, 0],
+  baseZVel: -.4
 };
 
 let fSpawnTimer = 1000;
 let lastUpdateTime = 0;
 let flocks = [];
-
-// let flock = new BirdFlock();
-// flock.addBirds();
-
-// let flock2 = new MothFlock();
-// flock2.addMoths(50);
 
 function tick(time) {
   render(time);
@@ -79,9 +74,9 @@ function update(time){
     let dist = 2000;
     let offset = v3.mulScalar(dir, dist);
     let pos = v3.add(offset, camera_info.pos);
-    pos = v3.add(pos, [0, 10 + Math.random() * 100, 0]);
+    pos = v3.add(pos, [0, 10 + Math.random() * 300, 0]);
     f.pos = pos;
-    let vel = .1 + Math.random() * 1;
+    let vel = .1 + Math.random() * .5;
     f.vel = v3.mulScalar(dir, -vel);
     
     let amt = 5 + Math.floor(Math.random() * 30);
@@ -102,11 +97,7 @@ function update(time){
     if (flock.birds) flock.birds.forEach(b => b.update(t));
     if (flock.moths) flock.moths.forEach(m => m.update(t));
   }
-  // flock.birds.forEach(b => b.update());
-  // flock.update();
-  // flock2.moths.forEach(b => b.update(t));
-  // flock2.update();
-  moveCamera();
+  moveCamera(t);
   floor.pos[0] = camera_info.pos[0];
   floor.pos[2] = camera_info.pos[2];
 
@@ -118,7 +109,7 @@ function outOfRange(obj) {
   return distsq >= 2500*2500;
 }
 
-function moveCamera() {
+function moveCamera(t) {
   if (keys[65]) camera_info.vel[0] = -.5;      //a
   else if (keys[68]) camera_info.vel[0] = .5;  //d
   else {
@@ -132,7 +123,9 @@ function moveCamera() {
     if (Math.abs(camera_info.vel[2] < .01)) camera_info.vel[2] = 0;
   }
 
+  camera_info.vel[1] = Math.sin(2*t) * .1
   camera_info.pos = v3.add(camera_info.pos, camera_info.vel)
+  camera_info.pos[2] += camera_info.baseZVel;
 
   if (keys[37]) { //left
     camera_info.tar_offset[0] -= .1;
@@ -152,6 +145,7 @@ function moveCamera() {
     camera_info.tar_offset[1] *= .9;
     if (Math.abs(camera_info.tar_offset[1]) < .01) camera_info.tar_offset[1] = 0;
   }
+
   camera_info.tar_offset[2] = -VIEW_PLANE_DIST
   camera_info.tar = v3.add(camera_info.pos, camera_info.tar_offset)
 }

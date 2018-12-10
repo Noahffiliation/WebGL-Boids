@@ -5,6 +5,7 @@ var cubeBuffer = generateCubeBuffer(gl, twgl);
 var pyrBuffer = generatePyramidBuffer(gl, twgl);
 var sqrBuffer = generateSqaureBuffer(gl, twgl);
 var treeBuffer = generateTreeBuffer(gl, twgl);
+var snowBuffer = generateSnowflakeBuffer(gl, twgl);
 
 var programInfo = twgl.createProgramInfo(gl, ["3d-vertex-shader", "3d-fragment-shader"]);
 var m4 = twgl.m4;
@@ -38,6 +39,9 @@ for (let i=0; i<100; i++){
   tree.scale = 1 + Math.random()*2;
   scene_objs.push(tree)
 }
+
+let snowflake = new Snowflake();
+snowflake.solid.pos = [0, 100, 0];
 
 
 var camera_info = {
@@ -106,6 +110,7 @@ function update(time){
   // flock.update();
   // flock2.moths.forEach(b => b.update(t));
   // flock2.update();
+  snowflake.update(t);
   moveCamera();
   floor.pos[0] = camera_info.pos[0];
   floor.pos[2] = camera_info.pos[2];
@@ -165,7 +170,7 @@ function render() {
   
   gl.useProgram(programInfo.program);
 
-  gl.enable(gl.CULL_FACE);
+  //gl.enable(gl.CULL_FACE);
   gl.enable(gl.DEPTH_TEST);
 
   for (let i in scene_objs) {
@@ -246,4 +251,24 @@ function Square() {
 
 function Tree() {
   Solid.call(this, treeBuffer)
+}
+
+function SnowflakeSolid() {
+  Solid.call(this, snowBuffer)
+  this.color = [1,1,1,1]
+  // this.scale = 0.12
+  this.drawRotation = true;
+}
+
+function Snowflake() {
+  this.solid = new SnowflakeSolid();
+  scene_objs.push(this.solid);
+  this.vel = [0, -0.4, 0];
+  this.update = function(t) {
+    this.solid.move(this.vel)
+    this.solid.rot = [0, 2*t, 0];
+  }
+  this.kill = function() {
+    this.solid.kill = true;
+  }
 }

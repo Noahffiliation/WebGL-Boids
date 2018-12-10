@@ -1,4 +1,5 @@
 function generateCubeBuffer(gl, twgl) {
+    // origin is in the center of the cube.
     const array = {
         // 8 vertices
         position: [

@@ -1,4 +1,6 @@
 function generateSqaureBuffer(gl, twgl) {
+    // square is 2 units long on each side.
+    // origin is in the center of the square.
     const array = {
         // 4 vertices
         position: [

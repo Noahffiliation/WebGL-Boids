@@ -1,4 +1,6 @@
 function generatePyramidBuffer(gl, twgl) {
+    // the Pyramid is 3 units tall, facing in the z-direction
+    // origin is one unit from the center of the bottom square, 2 units below the tip
     const array = {
         // 5 vertices
         position: [

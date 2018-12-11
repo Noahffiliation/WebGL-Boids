@@ -1,5 +1,5 @@
 var canvas = document.getElementById('canvas');
-var gl = canvas.getContext('webgl');
+var gl = canvas.getContext('webgl2');
 if (!gl) console.log('no gl!');
 var cubeBuffer = generateCubeBuffer(gl, twgl);
 var pyrBuffer = generatePyramidBuffer(gl, twgl);

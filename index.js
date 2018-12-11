@@ -40,10 +40,6 @@ for (let i=0; i<100; i++){
   scene_objs.push(tree)
 }
 
-let snowflake = new Snowflake();
-snowflake.solid.pos = [0, 100, 0];
-
-
 var camera_info = {
   pos: [0,50,20],
   tar: [0,50,0],
@@ -59,11 +55,23 @@ var camera_info = {
 let fSpawnTimer = 1000;
 let lastUpdateTime = 0;
 let flocks = [];
+let snowflakes = [];
 
 function tick(time) {
   render(time);
   update(time);
   if (!done) requestAnimationFrame(tick)
+};
+
+function makeSnow() {
+  let num = Math.floor(Math.random() * 3);
+  for (let i=0; i<num; i++) {
+    let pos = [-100 + Math.random() * 200, 100, -Math.random() * 400];
+    pos = v3.add(pos, camera_info.pos);
+    let snowflake = new Snowflake();
+    snowflake.solid.pos = pos;
+    snowflakes.push(snowflake);
+  }
 }
 
 function update(time){
@@ -101,7 +109,14 @@ function update(time){
     if (flock.birds) flock.birds.forEach(b => b.update(t));
     if (flock.moths) flock.moths.forEach(m => m.update(t));
   }
-  snowflake.update(t);
+
+  for (let i in snowflakes) {
+    let s = snowflakes[i];
+    if (s.kill == true) snowflakes.splice(i--, 1);
+    else s.update(t);
+  }
+  makeSnow();
+
   moveCamera(t);
   floor.pos[0] = camera_info.pos[0];
   floor.pos[2] = camera_info.pos[2];
@@ -250,19 +265,29 @@ function Tree() {
 function SnowflakeSolid() {
   Solid.call(this, snowBuffer)
   this.color = [1,1,1,1]
-  // this.scale = 0.12
+  this.scale = Math.random() * 0.5;
   this.drawRotation = true;
 }
 
 function Snowflake() {
+  this.kill = false;
   this.solid = new SnowflakeSolid();
   scene_objs.push(this.solid);
-  this.vel = [0, -0.4, 0];
+  this.vel = [0, -0.1 - Math.random() * 0.1, 0];
+  this.rxv = (Math.random() * 2) - 1;
+  this.ryv = (Math.random() * 2) - 1;
   this.update = function(t) {
-    this.solid.move(this.vel)
-    this.solid.rot = [0, 2*t, 0];
+    this.vel[0] += (Math.random() - Math.random()) * 0.01;
+    this.vel[2] += (Math.random() - Math.random()) * 0.01;
+    this.solid.move(this.vel);
+    this.solid.rot[0] = this.rxv * t;
+    this.solid.rot[1] = this.ryv * t;
+    if (this.solid.pos[1] < -5) {
+      this.kill();
+    }
   }
   this.kill = function() {
     this.solid.kill = true;
+    this.kill = true;
   }
 }

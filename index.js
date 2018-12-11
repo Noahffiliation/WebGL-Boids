@@ -22,6 +22,8 @@ var done = false;
 twgl.resizeCanvasToDisplaySize(gl.canvas);
 
 var scene_objs = [];
+var scene_snowflakes = [];
+var scene_trees = [];
 
 let floor = new Square();
 floor.drawRotation = true;
@@ -31,14 +33,14 @@ floor.color = [.7,.7,.7, 1]
 floor.scale = 1000;
 scene_objs.push(floor)
 
-for (let i=0; i<100; i++){
-  let pos = [-100 + Math.random() * 200, 0, -100 + Math.random() * 200];
-  let tree = new Tree();
-  tree.pos = pos;
-  tree.color = [0,.5+Math.random()*.5,0,1]
-  tree.scale = 1 + Math.random()*2;
-  scene_objs.push(tree)
-}
+// for (let i=0; i<100; i++){
+//   let pos = [-100 + Math.random() * 200, 0, -100 + Math.random() * 200];
+//   let tree = new Tree();
+//   tree.pos = pos;
+//   tree.color = [0,.5+Math.random()*.5,0,1]
+//   tree.scale = 1 + Math.random()*2;
+//   scene_objs.push(tree)
+// }
 
 var camera_info = {
   pos: [0,50,20],
@@ -61,7 +63,9 @@ function tick(time) {
   render(time);
   update(time);
   if (!done) requestAnimationFrame(tick)
-};
+}
+
+requestAnimationFrame(tick);
 
 function makeSnow() {
   let num = Math.floor(Math.random() * 3);
@@ -71,8 +75,35 @@ function makeSnow() {
     let snowflake = new Snowflake();
     snowflake.solid.pos = pos;
     snowflakes.push(snowflake);
+    scene_snowflakes.push(snowflake.solid);
   }
 }
+
+function makeTrees() {
+  let num = Math.floor(Math.random() * 10);
+  if (num === 0) {
+    let pos = [-1000 + Math.random() * 2000, 0, -1000 - Math.random() * 0];
+    pos = v3.add(pos, camera_info.pos);
+    pos[1] = 0;
+    let tree = new Tree();
+    tree.pos = pos;
+    tree.color = [0,.5+Math.random()*.5,0,1]
+    tree.scale = 1 + Math.random()*2;
+    scene_trees.push(tree)
+  }
+}
+
+function killTrees() {
+  for (let i in scene_trees) {
+    let tree = scene_trees[i];
+    if (tree.pos[2] > camera_info.pos[2] + 10) {
+      tree.kill = true;
+    }
+  }
+  setTimeout(() => requestAnimationFrame(killTrees), 60000);
+}
+
+requestAnimationFrame(killTrees);
 
 function update(time){
   let elapsedTime = time - lastUpdateTime;
@@ -116,6 +147,7 @@ function update(time){
     else s.update(t);
   }
   makeSnow();
+  makeTrees();
 
   moveCamera(t);
   floor.pos[0] = camera_info.pos[0];
@@ -179,13 +211,19 @@ function render() {
   
   gl.useProgram(programInfo.program);
 
-  //gl.enable(gl.CULL_FACE);
   gl.enable(gl.DEPTH_TEST);
+  drawObjects(scene_objs, view_matrix, proj_matrix);
+  drawObjects(scene_trees, view_matrix, proj_matrix);
+  drawObjects(scene_snowflakes, view_matrix, proj_matrix, false);
 
-  for (let i in scene_objs) {
-    let obj_info = scene_objs[i];
+}
+
+function drawObjects(objs, view_matrix, proj_matrix, cullFace=true) {
+  cullFace ? gl.enable(gl.CULL_FACE) : gl.disable(gl.CULL_FACE);
+  for (let i in objs) {
+    let obj_info = objs[i];
     if (obj_info.kill === true) {
-      scene_objs.splice(i--, 1);
+      objs.splice(i--, 1);
       continue;
     }
     let uniforms = {
@@ -225,7 +263,6 @@ onkeyup = e => {
   let k = e.keyCode;
   keys[k] = false;
 }
-requestAnimationFrame(tick);
 
 function randomUniformVec(scale=1) {
   let newV = [0,0,0];
@@ -272,7 +309,6 @@ function SnowflakeSolid() {
 function Snowflake() {
   this.kill = false;
   this.solid = new SnowflakeSolid();
-  scene_objs.push(this.solid);
   this.vel = [0, -0.1 - Math.random() * 0.1, 0];
   this.rxv = (Math.random() * 2) - 1;
   this.ryv = (Math.random() * 2) - 1;

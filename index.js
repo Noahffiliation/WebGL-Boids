@@ -1,5 +1,5 @@
 var canvas = document.getElementById('canvas');
-var gl = canvas.getContext('webgl2');
+var gl = canvas.getContext('webgl');
 if (!gl) console.log('no gl!');
 var cubeBuffer = generateCubeBuffer(gl, twgl);
 var pyrBuffer = generatePyramidBuffer(gl, twgl);
@@ -66,6 +66,18 @@ function tick(time) {
 }
 
 requestAnimationFrame(tick);
+
+function getDistColor(obj, start, width) {
+	let distsq = v3.distanceSq(obj.pos, camera_info.pos);
+	let vis = 1.0;
+	
+	if(distsq >= 2500*(start+width)) vis = 0.0;
+	else if(distsq >= 2500*start) vis = 1 - (distsq - 2500*start) / (2500*width);
+
+	let color = v3.add(v3.mulScalar(obj.color, vis), v3.mulScalar([0.33, 0.33, 0.33], 1 - vis));
+
+	return [color[0], color[1], color[2], 1.0];
+}
 
 function makeSnow() {
   let num = Math.floor(Math.random() * 3);
@@ -212,13 +224,13 @@ function render() {
   gl.useProgram(programInfo.program);
 
   gl.enable(gl.DEPTH_TEST);
-  drawObjects(scene_objs, view_matrix, proj_matrix);
-  drawObjects(scene_trees, view_matrix, proj_matrix);
-  drawObjects(scene_snowflakes, view_matrix, proj_matrix, false);
+  drawObjects(scene_objs, view_matrix, proj_matrix, 500, 500);
+  drawObjects(scene_trees, view_matrix, proj_matrix, 100, 250);
+  drawObjects(scene_snowflakes, view_matrix, proj_matrix, 10, 10, false);
 
 }
 
-function drawObjects(objs, view_matrix, proj_matrix, cullFace=true) {
+function drawObjects(objs, view_matrix, proj_matrix, dist, width, cullFace=true) {
   cullFace ? gl.enable(gl.CULL_FACE) : gl.disable(gl.CULL_FACE);
   for (let i in objs) {
     let obj_info = objs[i];
@@ -226,11 +238,14 @@ function drawObjects(objs, view_matrix, proj_matrix, cullFace=true) {
       objs.splice(i--, 1);
       continue;
     }
+
+		let color = getDistColor(obj_info, dist, width);
+
     let uniforms = {
       view_matrix: view_matrix,
       proj_matrix: proj_matrix,
       model_matrix: model_matrix(obj_info),
-      color: obj_info.color,
+      color: color,
     };
     twgl.setBuffersAndAttributes(gl, programInfo, obj_info.buffer);
     twgl.setUniforms(programInfo, uniforms);

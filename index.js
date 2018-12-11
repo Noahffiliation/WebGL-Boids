@@ -225,7 +225,7 @@ function render() {
 
   gl.enable(gl.DEPTH_TEST);
   drawObjects(scene_objs, view_matrix, proj_matrix, 500, 500);
-  drawObjects(scene_trees, view_matrix, proj_matrix, 100, 250);
+  drawObjects(scene_trees, view_matrix, proj_matrix, 250, 100);
   drawObjects(scene_snowflakes, view_matrix, proj_matrix, 10, 10, false);
 
 }

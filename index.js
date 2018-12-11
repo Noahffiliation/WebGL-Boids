@@ -33,15 +33,6 @@ floor.color = [.7,.7,.7, 1]
 floor.scale = 1000;
 scene_objs.push(floor)
 
-// for (let i=0; i<100; i++){
-//   let pos = [-100 + Math.random() * 200, 0, -100 + Math.random() * 200];
-//   let tree = new Tree();
-//   tree.pos = pos;
-//   tree.color = [0,.5+Math.random()*.5,0,1]
-//   tree.scale = 1 + Math.random()*2;
-//   scene_objs.push(tree)
-// }
-
 var camera_info = {
   pos: [0,50,20],
   tar: [0,50,0],
@@ -71,7 +62,10 @@ function getDistColor(obj, start, width) {
 	let distsq = v3.distanceSq(obj.pos, camera_info.pos);
 	let vis = 1.0;
 	
-	if(distsq >= 2500*(start+width)) vis = 0.0;
+	if(distsq >= 2500*(start+width)){
+    vis = 0.0;
+    return [0, 0, 0, 0];
+  } 
 	else if(distsq >= 2500*start) vis = 1 - (distsq - 2500*start) / (2500*width);
 
 	let color = v3.add(v3.mulScalar(obj.color, vis), v3.mulScalar([0.33, 0.33, 0.33], 1 - vis));
@@ -131,13 +125,13 @@ function update(time){
     let pos = v3.add(offset, camera_info.pos);
     pos = v3.add(pos, [0, 10 + Math.random() * 300, 0]);
     f.pos = pos;
-    let vel = .1 + Math.random() * .5;
+    let vel = .01 + Math.random() * .2;
     f.vel = v3.mulScalar(dir, -vel);
     
     let amt = 5 + Math.floor(Math.random() * 30);
     isBird ? f.addBirds(amt) : f.addMoths(amt);
     flocks.push(f);
-    fSpawnTimer = 500 + Math.floor(Math.random() * 100)
+    fSpawnTimer = 100 + Math.floor(Math.random() * 400)
   }
   let t = time * 0.001;
 
